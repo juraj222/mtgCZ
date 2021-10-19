@@ -10,12 +10,22 @@ import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import androidx.core.content.FileProvider;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.ml.vision.FirebaseVision;
+import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+import com.google.firebase.ml.vision.text.FirebaseVisionText;
+import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 
 import java.io.File;
 import java.io.IOException;
@@ -105,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
 //            ImageView image = (ImageView) findViewById(R.id.imageView1);
 //            image.setImageBitmap(photo);
             Bitmap photo = setPic();
-//            firebaseDetectText(photo);
+            firebaseDetectText(photo);
         }
     }
 
@@ -139,5 +149,32 @@ public class MainActivity extends AppCompatActivity {
         imageView.setImageBitmap(rotatedBitmap);
 
         return rotatedBitmap;
+    }
+
+    private void firebaseDetectText(Bitmap photo) {
+        FirebaseVisionImage firebaseVisionImage = FirebaseVisionImage.fromBitmap(photo);
+        FirebaseVisionTextRecognizer cloudTextRecognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
+        Task<FirebaseVisionText> result =
+                cloudTextRecognizer.processImage(firebaseVisionImage)
+                        .addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
+                            @Override
+                            public void onSuccess(FirebaseVisionText firebaseVisionText) {
+                                // Task completed successfully
+                                Log.d("err", "-----------------------------------------------");
+                                Log.d("err", "RESULT camera: " + firebaseVisionText.toString());
+                                Log.d("err", "RESULT camera: " + firebaseVisionText.getText());
+                                Log.d("err", "-----------------------------------------------");
+                                TextView result = (TextView) findViewById(R.id.result);
+                                result.setText(firebaseVisionText.getText());
+                            }
+                        })
+                        .addOnFailureListener(
+                                new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        // Task failed with an exception
+                                        Log.d("err", "ERROR camera: " + e.getMessage());
+                                    }
+                                });
     }
 }
