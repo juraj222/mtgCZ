@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
 
         if ((checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) ||
                 (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) ||
-                (checkSelfPermission(Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED)){
+                (checkSelfPermission(Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED)) {
             requestPermissions(new String[]{
                             Manifest.permission.READ_EXTERNAL_STORAGE,
                             Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         Button captureButton = findViewById(R.id.btn_take_picture);
         captureButton.setOnClickListener(
                 v -> {
-                        dispatchTakePictureIntent();
+                    dispatchTakePictureIntent();
                 }
         );
 
@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
         int photoH = bmOptions.outHeight;
 
         // Determine how much to scale down the image
-        int scaleFactor = Math.max(1, Math.min(photoW/targetW, photoH/targetH));
+        int scaleFactor = Math.max(1, Math.min(photoW / targetW, photoH / targetH));
 
         // Decode the image file into a Bitmap sized to fill the View
         bmOptions.inJustDecodeBounds = false;
@@ -209,10 +209,20 @@ public class MainActivity extends AppCompatActivity {
         ListView myList = (ListView) findViewById(R.id.cardList);
         ArrayList<String> formattedCards = new ArrayList<>();
         for (CRCard card : cards) {
-            formattedCards.add(" " + card.getName() + " - " + card.getStock()  + "ks - " + card.getPrice() + "Kč");
+            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč");
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
         myList.setAdapter(adapter);
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSIONS_MULTIPLE_REQUEST) {
+            if (grantResults.length > 0) {
+                initButtons();
+            }
+        }
     }
 }
