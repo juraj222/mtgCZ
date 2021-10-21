@@ -12,9 +12,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,11 +24,19 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
+import com.mtgCZ.model.CRCard;
+import com.mtgCZ.network.RetrofitClientInstance;
+import com.mtgCZ.service.MtgSearchService;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     public static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
@@ -41,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        findViewById(R.id.loadingPanel).setVisibility(View.GONE);
 
         if ((checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) ||
                 (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) ||
@@ -165,7 +171,28 @@ public class MainActivity extends AppCompatActivity {
                                 Log.d("err", "RESULT camera: " + firebaseVisionText.getText());
                                 Log.d("err", "-----------------------------------------------");
                                 TextView result = (TextView) findViewById(R.id.result);
+                                ListView cardList = findViewById(R.id.cardList);
+                                cardList.setAdapter(null);
                                 result.setText(firebaseVisionText.getText());
+                                if (firebaseVisionText.getTextBlocks().size() > 0) {
+                                    MtgSearchService mtgSearchService = RetrofitClientInstance.getRetrofitInstance().create(MtgSearchService.class);
+                                    Call<List<CRCard>> call = mtgSearchService.getCard(firebaseVisionText.getTextBlocks().get(0).getText());
+                                    findViewById(R.id.loadingPanel).setVisibility(View.VISIBLE);
+                                    call.enqueue(new Callback<List<CRCard>>() {
+                                        @Override
+                                        public void onResponse(Call<List<CRCard>> call, Response<List<CRCard>> response) {
+                                            for (CRCard card : response.body()) {
+                                                Log.d("find", card.getName());
+                                            }
+                                            setCardList(response.body());
+                                        }
+
+                                        @Override
+                                        public void onFailure(Call<List<CRCard>> call, Throwable t) {
+
+                                        }
+                                    });
+                                }
                             }
                         })
                         .addOnFailureListener(
@@ -176,5 +203,16 @@ public class MainActivity extends AppCompatActivity {
                                         Log.d("err", "ERROR camera: " + e.getMessage());
                                     }
                                 });
+    }
+
+    private void setCardList(List<CRCard> cards) {
+        ListView myList = (ListView) findViewById(R.id.cardList);
+        ArrayList<String> formattedCards = new ArrayList<>();
+        for (CRCard card : cards) {
+            formattedCards.add(" " + card.getName() + " - " + card.getStock()  + "ks - " + card.getPrice() + "Kč");
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
+        myList.setAdapter(adapter);
+        findViewById(R.id.loadingPanel).setVisibility(View.GONE);
     }
 }
