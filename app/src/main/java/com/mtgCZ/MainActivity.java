@@ -25,8 +25,11 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 import com.mtgCZ.model.CRCard;
-import com.mtgCZ.network.RetrofitClientInstance;
+import com.mtgCZ.model.ScryfallCard;
+import com.mtgCZ.network.RetrofitClientInstanceCR;
+import com.mtgCZ.network.RetrofitClientInstanceScryfall;
 import com.mtgCZ.service.MtgSearchService;
+import com.mtgCZ.service.ScryfallNameSearch;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -48,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
+        wakeUpBe();
 
         if ((checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) ||
                 (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) ||
@@ -61,6 +65,22 @@ public class MainActivity extends AppCompatActivity {
         } else {
             initButtons();
         }
+    }
+
+    private void wakeUpBe() {
+        MtgSearchService mtgSearchService = RetrofitClientInstanceCR.getRetrofitInstance().create(MtgSearchService.class);
+        Call<String> call = mtgSearchService.ping();
+        call.enqueue(new Callback<String>() {
+            @Override
+            public void onResponse(Call<String> call, Response<String> response) {
+                Log.d("err", "PING OK");
+            }
+
+            @Override
+            public void onFailure(Call<String> call, Throwable t) {
+                Log.d("err", "PING FAIL");
+            }
+        });
     }
 
     private void initButtons() {
@@ -175,23 +195,7 @@ public class MainActivity extends AppCompatActivity {
                                 cardList.setAdapter(null);
                                 result.setText(firebaseVisionText.getText());
                                 if (firebaseVisionText.getTextBlocks().size() > 0) {
-                                    MtgSearchService mtgSearchService = RetrofitClientInstance.getRetrofitInstance().create(MtgSearchService.class);
-                                    Call<List<CRCard>> call = mtgSearchService.getCard(firebaseVisionText.getTextBlocks().get(0).getText());
-                                    findViewById(R.id.loadingPanel).setVisibility(View.VISIBLE);
-                                    call.enqueue(new Callback<List<CRCard>>() {
-                                        @Override
-                                        public void onResponse(Call<List<CRCard>> call, Response<List<CRCard>> response) {
-                                            for (CRCard card : response.body()) {
-                                                Log.d("find", card.getName());
-                                            }
-                                            setCardList(response.body());
-                                        }
-
-                                        @Override
-                                        public void onFailure(Call<List<CRCard>> call, Throwable t) {
-
-                                        }
-                                    });
+                                    fixBrokenCardName(firebaseVisionText.getTextBlocks().get(0).getText());
                                 }
                             }
                         })
@@ -203,6 +207,45 @@ public class MainActivity extends AppCompatActivity {
                                         Log.d("err", "ERROR camera: " + e.getMessage());
                                     }
                                 });
+    }
+
+    private void callBEPriceSearch(String cardName) {
+        MtgSearchService mtgSearchService = RetrofitClientInstanceCR.getRetrofitInstance().create(MtgSearchService.class);
+        Call<List<CRCard>> call = mtgSearchService.getCard(cardName);
+        findViewById(R.id.loadingPanel).setVisibility(View.VISIBLE);
+        call.enqueue(new Callback<List<CRCard>>() {
+            @Override
+            public void onResponse(Call<List<CRCard>> call, Response<List<CRCard>> response) {
+                for (CRCard card : response.body()) {
+                    Log.d("find", card.getName());
+                }
+                setCardList(response.body());
+            }
+
+            @Override
+            public void onFailure(Call<List<CRCard>> call, Throwable t) {
+
+            }
+        });
+    }
+
+    private void fixBrokenCardName (String cardName) {
+        ScryfallNameSearch scryfallNameSearch = RetrofitClientInstanceScryfall.getRetrofitInstance().create(ScryfallNameSearch.class);
+        Call<ScryfallCard> call = scryfallNameSearch.findCardNameFromFuzzyText(cardName);
+        call.enqueue(new Callback<ScryfallCard>() {
+            @Override
+            public void onResponse(Call<ScryfallCard> call, Response<ScryfallCard> response) {
+                if(response.body() != null)
+                    callBEPriceSearch(response.body().getName());
+                else
+                    Log.d("err", "ERROR EMPTY BODY");
+            }
+
+            @Override
+            public void onFailure(Call<ScryfallCard> call, Throwable t) {
+
+            }
+        });
     }
 
     private void setCardList(List<CRCard> cards) {

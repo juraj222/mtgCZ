@@ -10,4 +10,7 @@ import java.util.List;
 public interface MtgSearchService {
     @GET("/mtg/{cardName}")
     Call<List<CRCard>> getCard(@Path("cardName") String CardName);
+
+    @GET("/mtg/ping")
+    Call<String> ping();
 }

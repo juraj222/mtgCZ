@@ -34,7 +34,7 @@
                     android:id="@+id/result"
                     android:layout_height="245dp"
                     android:layout_width="178dp"
-                    android:text="test"/>
+                    android:text=""/>
         </LinearLayout>
         <ListView
                 android:layout_width="match_parent"
