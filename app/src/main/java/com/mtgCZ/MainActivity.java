@@ -24,10 +24,11 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
-import com.mtgCZ.model.CRCard;
-import com.mtgCZ.model.ScryfallCard;
+import com.mtgCZ.model.*;
 import com.mtgCZ.network.RetrofitClientInstanceCR;
+import com.mtgCZ.network.RetrofitClientInstanceExchangeCurrency;
 import com.mtgCZ.network.RetrofitClientInstanceScryfall;
+import com.mtgCZ.service.ECurrencySearch;
 import com.mtgCZ.service.MtgSearchService;
 import com.mtgCZ.service.ScryfallNameSearch;
 import retrofit2.Call;
@@ -45,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     public static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
     public static final int REQUEST_IMAGE_CAPTURE = 1;
     private String currentPhotoPath;
+    private double exchangeRate = 0.0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
 //        wakeUpBe();
+        findExchangeRate();
 
         if ((checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) ||
                 (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) ||
@@ -87,11 +90,34 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void findExchangeRate() {
+        ECurrencySearch eCurrencySearch = RetrofitClientInstanceExchangeCurrency.getRetrofitInstance().create(ECurrencySearch.class);
+        Call<ERateWrapper> call = eCurrencySearch.getExchangeRateOfEur();
+        call.enqueue(new Callback<ERateWrapper>() {
+            @Override
+            public void onResponse(Call<ERateWrapper> call, Response<ERateWrapper> response) {
+                if(response.body() != null && response.body().getRates() != null)
+                    exchangeRate=response.body().getRates().getCZK();
+            }
+
+            @Override
+            public void onFailure(Call<ERateWrapper> call, Throwable t) {
+                Log.d("err", "PING FAIL");
+            }
+        });
+    }
+
     private void initButtons() {
         Button captureButton = findViewById(R.id.btn_take_picture);
         captureButton.setOnClickListener(
                 v -> {
                     dispatchTakePictureIntent();
+                }
+        );
+        Button ruleButton = findViewById(R.id.ruleButton);
+        ruleButton.setOnClickListener(
+                v -> {
+                    switchCardListAndRules();
                 }
         );
 
@@ -197,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
                                 TextView result = (TextView) findViewById(R.id.result);
                                 ListView cardList = findViewById(R.id.cardList);
                                 cardList.setAdapter(null);
-                                result.setText(firebaseVisionText.getText());
+                                result.setText(firebaseVisionText.getTextBlocks().get(0).getText());
                                 if (firebaseVisionText.getTextBlocks().size() > 0) {
                                     fixBrokenCardName(firebaseVisionText.getTextBlocks().get(0).getText());
                                 }
@@ -221,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<List<CRCard>> call, Response<List<CRCard>> response) {
                 for (CRCard card : response.body()) {
-                    Log.d("find", card.getName());
+                    Log.d("info", "find " + card.getName());
                 }
                 setCardList(response.body());
             }
@@ -239,14 +265,47 @@ public class MainActivity extends AppCompatActivity {
         call.enqueue(new Callback<ScryfallCard>() {
             @Override
             public void onResponse(Call<ScryfallCard> call, Response<ScryfallCard> response) {
-                if(response.body() != null)
+                if(response.body() != null) {
                     callBEPriceSearch(response.body().getName());
+                    findRules(response.body().getId());
+
+                    TextView marketPrice = (TextView) findViewById(R.id.marketPrice);
+                    String result = "Market price\n" + response.body().getPrices().getEur()+ "€" + " --> "
+                            + exchangeRate*Double.parseDouble(response.body().getPrices().getEur()) + "Czk";
+                    marketPrice.setText(result);
+                }
                 else
                     Log.d("err", "ERROR EMPTY BODY");
             }
 
             @Override
             public void onFailure(Call<ScryfallCard> call, Throwable t) {
+                Log.d("err", t.getMessage());
+            }
+        });
+    }
+
+    private void findRules (String id) {
+        ScryfallNameSearch scryfallNameSearch = RetrofitClientInstanceScryfall.getRetrofitInstance().create(ScryfallNameSearch.class);
+        Call<ScryfallRules> call = scryfallNameSearch.findRulings(id);
+        call.enqueue(new Callback<ScryfallRules>() {
+            @Override
+            public void onResponse(Call<ScryfallRules> call, Response<ScryfallRules> response) {
+                if(response.body() != null) {
+                    String result = "";
+                    for (ScryfallRule sr : response.body().getData()) {
+                        result += sr.getComment() + "\n";
+                    }
+
+                    TextView rulesText = (TextView) findViewById(R.id.rulesText);
+                    rulesText.setText(result);
+                }
+                else
+                    Log.d("err", "ERROR EMPTY BODY");
+            }
+
+            @Override
+            public void onFailure(Call<ScryfallRules> call, Throwable t) {
                 Log.d("err", t.getMessage());
             }
         });
@@ -261,6 +320,18 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
         myList.setAdapter(adapter);
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
+    }
+
+    private void switchCardListAndRules(){
+        ListView cardList = (ListView) findViewById(R.id.cardList);
+        TextView rulesText = (TextView) findViewById(R.id.rulesText);
+        if (rulesText.getVisibility() == View.GONE) {
+            rulesText.setVisibility(View.VISIBLE);
+            cardList.setVisibility(View.GONE);
+        } else {
+            rulesText.setVisibility(View.GONE);
+            cardList.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
