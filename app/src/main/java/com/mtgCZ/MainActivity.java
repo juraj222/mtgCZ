@@ -20,6 +20,7 @@ import androidx.core.content.FileProvider;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.textview.MaterialTextView;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_IMAGE_CAPTURE = 1;
     private String currentPhotoPath;
     private double exchangeRate = 0.0;
+    private List<CRCard> cards;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +120,13 @@ public class MainActivity extends AppCompatActivity {
         ruleButton.setOnClickListener(
                 v -> {
                     switchCardListAndRules();
+                }
+        );
+
+        Button sumButton = findViewById(R.id.sumButton);
+        sumButton.setOnClickListener(
+                v -> {
+                    clearSum();
                 }
         );
 
@@ -271,11 +280,14 @@ public class MainActivity extends AppCompatActivity {
                     findRules(response.body().getId());
 
                     TextView marketPrice = (TextView) findViewById(R.id.marketPrice);
+                    String result = "Market price\n";
                     if (response.body().getPrices().getEur() != null) {
-                        String result = "Market price\n" + response.body().getPrices().getEur() + "€" + " --> "
+                        result += response.body().getPrices().getEur() + "€" + " --> "
                                 + exchangeRate * Double.parseDouble(response.body().getPrices().getEur()) + "Czk";
-                        marketPrice.setText(result);
+                    } else {
+                        result += "not found";
                     }
+                    marketPrice.setText(result);
                 }
                 else
                     Log.d("err", "ERROR EMPTY BODY");
@@ -316,12 +328,25 @@ public class MainActivity extends AppCompatActivity {
 
     private void setCardList(List<CRCard> cards) {
         ListView myList = (ListView) findViewById(R.id.cardList);
+        this.cards = cards;
         ArrayList<String> formattedCards = new ArrayList<>();
         for (CRCard card : cards) {
-            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč - " + Math.floor(80*(card.getPrice()/100.0f)));
+            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč - " + (int)Math.floor(80*(card.getPrice()/100.0f)));
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
         myList.setAdapter(adapter);
+        myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position,
+                                    long id) {
+                Button sumButton = findViewById(R.id.sumButton);
+                String sumButtonText = sumButton.getText().toString().replaceAll("[^0-9]", "");
+                Log.d("info", "clicked " + Math.floor(80*(cards.get((int)id).getPrice()/100.0f)));
+                int calcSum = (int)Math.floor(Double.parseDouble(sumButtonText) + 80*(cards.get((int)id).getPrice()/100.0f));
+                sumButtonText = "SUM: " + calcSum;
+                sumButton.setText(sumButtonText);
+            }
+        });
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
     }
 
@@ -337,6 +362,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void clearSum() {
+        Button sumButton = findViewById(R.id.sumButton);
+        String tmp = "SUM: 0";
+        sumButton.setText(tmp);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -346,4 +377,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
 }

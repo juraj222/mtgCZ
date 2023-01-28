@@ -35,6 +35,10 @@
                         android:text="Rules"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:id="@+id/ruleButton"/>
+                <Button
+                        android:text="SUM: 0"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:id="@+id/sumButton"/>
                 <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:id="@+id/marketPrice"/>
