@@ -223,7 +223,8 @@ public class MainActivity extends AppCompatActivity {
                                 TextView result = (TextView) findViewById(R.id.result);
                                 ListView cardList = findViewById(R.id.cardList);
                                 cardList.setAdapter(null);
-                                result.setText(firebaseVisionText.getTextBlocks().get(0).getText());
+                                String cardName = firebaseVisionText.getTextBlocks().get(0).getText().replaceAll("\\d","");
+                                result.setText(cardName);
                                 if (firebaseVisionText.getTextBlocks().size() > 0) {
                                     fixBrokenCardName(firebaseVisionText.getTextBlocks().get(0).getText());
                                 }
@@ -270,9 +271,11 @@ public class MainActivity extends AppCompatActivity {
                     findRules(response.body().getId());
 
                     TextView marketPrice = (TextView) findViewById(R.id.marketPrice);
-                    String result = "Market price\n" + response.body().getPrices().getEur()+ "€" + " --> "
-                            + exchangeRate*Double.parseDouble(response.body().getPrices().getEur()) + "Czk";
-                    marketPrice.setText(result);
+                    if (response.body().getPrices().getEur() != null) {
+                        String result = "Market price\n" + response.body().getPrices().getEur() + "€" + " --> "
+                                + exchangeRate * Double.parseDouble(response.body().getPrices().getEur()) + "Czk";
+                        marketPrice.setText(result);
+                    }
                 }
                 else
                     Log.d("err", "ERROR EMPTY BODY");
