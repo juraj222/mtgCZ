@@ -51,14 +51,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
-        wakeUpBe();
+//        wakeUpBe();
 
         if ((checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) ||
                 (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) ||
-                (checkSelfPermission(Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED)) {
+                (checkSelfPermission(Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) ||
+                (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) ||
+                (checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES) != PackageManager.PERMISSION_GRANTED) )
+        {
             requestPermissions(new String[]{
                             Manifest.permission.READ_EXTERNAL_STORAGE,
                             Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                            Manifest.permission.QUERY_ALL_PACKAGES,
                             Manifest.permission.INTERNET,
                             Manifest.permission.CAMERA},
                     PERMISSIONS_MULTIPLE_REQUEST);
@@ -96,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+//        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             // Create the File where the photo should go
             File photoFile = null;
             try {
@@ -112,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
             }
-        }
+//        }
     }
 
     private File createImageFile() throws IOException {
@@ -186,10 +190,10 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess(FirebaseVisionText firebaseVisionText) {
                                 // Task completed successfully
-                                Log.d("err", "-----------------------------------------------");
-                                Log.d("err", "RESULT camera: " + firebaseVisionText.toString());
-                                Log.d("err", "RESULT camera: " + firebaseVisionText.getText());
-                                Log.d("err", "-----------------------------------------------");
+                                Log.d("info", "-----------------------------------------------");
+                                Log.d("info", "RESULT camera: " + firebaseVisionText.toString());
+                                Log.d("info", "RESULT camera: " + firebaseVisionText.getText());
+                                Log.d("info", "-----------------------------------------------");
                                 TextView result = (TextView) findViewById(R.id.result);
                                 ListView cardList = findViewById(R.id.cardList);
                                 cardList.setAdapter(null);
@@ -224,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<CRCard>> call, Throwable t) {
-
+                Log.d("err", t.getMessage());
             }
         });
     }
@@ -243,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ScryfallCard> call, Throwable t) {
-
+                Log.d("err", t.getMessage());
             }
         });
     }
@@ -252,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
         ListView myList = (ListView) findViewById(R.id.cardList);
         ArrayList<String> formattedCards = new ArrayList<>();
         for (CRCard card : cards) {
-            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč");
+            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč - " + Math.floor(80*(card.getPrice()/100.0f)));
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
         myList.setAdapter(adapter);

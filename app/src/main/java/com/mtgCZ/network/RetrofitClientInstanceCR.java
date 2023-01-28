@@ -5,7 +5,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClientInstanceCR {
     private static Retrofit retrofit;
-    private static final String BASE_URL = "https://mtgcz.herokuapp.com/";
+    private static final String BASE_URL = "http://207.180.254.155:8087/";
 
     public static Retrofit getRetrofitInstance() {
         if (retrofit == null) {
