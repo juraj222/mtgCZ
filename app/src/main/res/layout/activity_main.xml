@@ -26,15 +26,33 @@
                     android:orientation="vertical"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
-                <TextView
-                        android:id="@+id/result"
-                        android:layout_height="wrap_content"
+                <SearchView
                         android:layout_width="match_parent"
-                        android:text=""/>
+                        android:layout_height="wrap_content" android:id="@+id/searchResult"/>
                 <Button
                         android:text="Rules"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:id="@+id/ruleButton"/>
+                <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                    <Button
+                            android:text="-"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:id="@+id/miunusButton"
+                            android:layout_weight="1"/>
+                    <Button
+                            android:text="X"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:id="@+id/clearButton"
+                            android:layout_weight="1"/>
+                    <Button
+                            android:text="+"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:id="@+id/plusButton"
+                            android:layout_weight="1"/>
+                </LinearLayout>
                 <Button
                         android:text="SUM: 0"
                         android:layout_width="match_parent"

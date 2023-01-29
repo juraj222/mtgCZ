@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_IMAGE_CAPTURE = 1;
     private String currentPhotoPath;
     private double exchangeRate = 0.0;
-    private List<CRCard> cards;
+    private List<CRCard> sumCards = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,10 +126,47 @@ public class MainActivity extends AppCompatActivity {
         Button sumButton = findViewById(R.id.sumButton);
         sumButton.setOnClickListener(
                 v -> {
+                    listSumCards();
+                }
+        );
+
+        Button plusButton = findViewById(R.id.plusButton);
+        plusButton.setOnClickListener(
+                v -> {
+                    addToSum(10);
+                }
+        );
+        Button miunusButton = findViewById(R.id.miunusButton);
+        miunusButton.setOnClickListener(
+                v -> {
+                    addToSum(-10);
+                }
+        );
+        Button clearButton = findViewById(R.id.clearButton);
+        clearButton.setOnClickListener(
+                v -> {
                     clearSum();
                 }
         );
 
+        SearchView searchResult = (SearchView) findViewById(R.id.searchResult);
+        searchResult.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                fixBrokenCardName(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+
+            public void callSearch(String query) {
+                //Do searching
+            }
+
+        });
     }
 
     private void dispatchTakePictureIntent() {
@@ -229,13 +266,11 @@ public class MainActivity extends AppCompatActivity {
                                 Log.d("info", "RESULT camera: " + firebaseVisionText.toString());
                                 Log.d("info", "RESULT camera: " + firebaseVisionText.getText());
                                 Log.d("info", "-----------------------------------------------");
-                                TextView result = (TextView) findViewById(R.id.result);
                                 ListView cardList = findViewById(R.id.cardList);
                                 cardList.setAdapter(null);
                                 String cardName = firebaseVisionText.getTextBlocks().get(0).getText().replaceAll("\\d","");
-                                result.setText(cardName);
                                 if (firebaseVisionText.getTextBlocks().size() > 0) {
-                                    fixBrokenCardName(firebaseVisionText.getTextBlocks().get(0).getText());
+                                    fixBrokenCardName(cardName);
                                 }
                             }
                         })
@@ -276,6 +311,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ScryfallCard> call, Response<ScryfallCard> response) {
                 if(response.body() != null) {
+                    SearchView searchResult = (SearchView) findViewById(R.id.searchResult);
+                    searchResult.setQuery(response.body().getName(), false);
+
                     callBEPriceSearch(response.body().getName());
                     findRules(response.body().getId());
 
@@ -327,14 +365,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setCardList(List<CRCard> cards) {
-        ListView myList = (ListView) findViewById(R.id.cardList);
-        this.cards = cards;
-        ArrayList<String> formattedCards = new ArrayList<>();
-        for (CRCard card : cards) {
-            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč - " + (int)Math.floor(80*(card.getPrice()/100.0f)));
-        }
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
-        myList.setAdapter(adapter);
+        ListView myList = fillCardList(cards);
         myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
@@ -344,10 +375,22 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("info", "clicked " + Math.floor(80*(cards.get((int)id).getPrice()/100.0f)));
                 int calcSum = (int)Math.floor(Double.parseDouble(sumButtonText) + 80*(cards.get((int)id).getPrice()/100.0f));
                 sumButtonText = "SUM: " + calcSum;
+                sumCards.add(cards.get((int)id));
                 sumButton.setText(sumButtonText);
             }
         });
         findViewById(R.id.loadingPanel).setVisibility(View.GONE);
+    }
+
+    private ListView fillCardList(List<CRCard> cards) {
+        ListView myList = (ListView) findViewById(R.id.cardList);
+        ArrayList<String> formattedCards = new ArrayList<>();
+        for (CRCard card : cards) {
+            formattedCards.add(" " + card.getName() + " - " + card.getStock() + "ks - " + card.getPrice() + "Kč - " + (int)Math.floor(80*(card.getPrice()/100.0f)));
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.card_listview, formattedCards);
+        myList.setAdapter(adapter);
+        return myList;
     }
 
     private void switchCardListAndRules(){
@@ -362,10 +405,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void listSumCards () {
+        fillCardList(sumCards);
+    }
+
     public void clearSum() {
         Button sumButton = findViewById(R.id.sumButton);
         String tmp = "SUM: 0";
+        sumCards.clear();
+        fillCardList(sumCards);
         sumButton.setText(tmp);
+    }
+
+    public void addToSum(int number) {
+        Button sumButton = findViewById(R.id.sumButton);
+        String tmp = sumButton.getText().toString().replaceAll("[^0-9]", "");
+        int result = number + Integer.parseInt(tmp);
+        sumButton.setText("SUM: " + result);
     }
 
     @Override
